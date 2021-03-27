@@ -2,10 +2,10 @@ version: '3.7'
 
 services:
   web:
-    build: ./app
+    build: data
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ./app/:/usr/src/app/
+      - ./data/:/usr/src/data/
     ports:
       - 8000:8000
     env_file:
@@ -19,7 +19,7 @@ services:
     environment:
       - POSTGRES_USER=hello_django
       - POSTGRES_PASSWORD=hello_django
-      - POSTGRES_DB=hello_django_dev
+      - POSTGRES_DB=eltesto
 
 volumes:
   postgres_data:

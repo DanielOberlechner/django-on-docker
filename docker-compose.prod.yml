@@ -2,13 +2,14 @@ version: '3.7'
 
 services:
   web:
+    container_name: django
     build:
-      context: ./app
+      context: data
       dockerfile: Dockerfile.prod
     command: gunicorn hello_django.wsgi:application --bind 0.0.0.0:8000
     volumes:
-      - static_volume:/home/app/web/staticfiles
-      - media_volume:/home/app/web/mediafiles
+      - static_volume:/home/data/web/staticfiles
+      - media_volume:/home/data/web/mediafiles
     expose:
       - 8000
     env_file:
@@ -16,20 +17,38 @@ services:
     depends_on:
       - db
   db:
+    container_name: database
     image: postgres:12.0-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
       - ./.env.prod.db
   nginx:
-    build: ./nginx
+    container_name: nginx
+    build:
+      context: ./
+      dockerfile: Dockerfile
     volumes:
-      - static_volume:/home/app/web/staticfiles
-      - media_volume:/home/app/web/mediafiles
+      - static_volume:/home/data/web/staticfiles
+      - media_volume:/home/data/web/mediafiles
+      - ./data/nginx/:/etc/nginx/conf.d
+      - ./data/nginx/certbot/conf:/etc/letsencrypt
+      - ./data/nginx/certbot/www/:/var/www/certbot
     ports:
-      - 1337:80
+      - 80:80
+      - 443:80
     depends_on:
       - web
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./data/nginx/certbot/conf:/etc/letsecnrypt
+      - ./data/nginx/certbot/www:/var/www/cerbot
+    depends_on:
+      - nginx
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
 volumes:
   postgres_data:
